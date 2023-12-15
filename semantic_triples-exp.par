@@ -1,0 +1,13 @@
+%start SemanticTriples
+%title "SemanticTriples grammar"
+%comment "Grammar for Semantic Triples"
+%line_comment "//"
+
+%%
+
+/* 0 */ SemanticTriples: SemanticTriplesList /* Vec */;
+/* 1 */ SemanticTriplesList /* Vec<T>::Push */: SemanticTriple SemanticTriplesList;
+/* 2 */ SemanticTriplesList /* Vec<T>::New */: ;
+/* 3 */ SemanticTriple: Id Predicate Id;
+/* 4 */ Id: /[a-zA-Z_][a-zA-Z0-9_]*/;
+/* 5 */ Predicate: '--'^ /* Clipped */ Id '->'^ /* Clipped */;

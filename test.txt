@@ -1,0 +1,11 @@
+// To run the test please issue:
+// cargo run ./test.txt
+
+Alice --knows-> Bob
+Bob   --hates-> Alice
+Bob   --hates-> Dave
+Carol --knows-> Alice
+Carol --loves-> Dave
+Dave  --loves-> Carol
+
+// End
