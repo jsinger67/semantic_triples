@@ -297,11 +297,7 @@ impl<'t, 'u> SemanticTriplesGrammarAuto<'t, 'u> {
         let context = function_name!();
         trace!("{}", self.trace_item_stack(context));
         let id = pop_item!(self, id, Id, context);
-        let predicate_built = Predicate {
-            // Ignore clipped member 'minus_minus'
-            id: Box::new(id),
-            // Ignore clipped member 'minus_g_t'
-        };
+        let predicate_built = Predicate { id: Box::new(id) };
         // Calling user action here
         self.user_grammar.predicate(&predicate_built)?;
         self.push(ASTType::Predicate(predicate_built), context);
