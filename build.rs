@@ -11,7 +11,6 @@ fn main() {
         .expanded_grammar_output_file("../semantic_triples-exp.par")
         .parser_output_file("semantic_triples_parser.rs")
         .actions_output_file("semantic_triples_grammar_trait.rs")
-        .enable_auto_generation()
         .user_type_name("SemanticTriplesGrammar")
         .user_trait_module_name("semantic_triples_grammar")
         .trim_parse_tree()

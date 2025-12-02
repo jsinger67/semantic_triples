@@ -9,7 +9,6 @@
 #![allow(clippy::large_enum_variant)]
 #![allow(clippy::upper_case_acronyms)]
 
-use parol_runtime::derive_builder::Builder;
 use parol_runtime::log::trace;
 #[allow(unused_imports)]
 use parol_runtime::parol_macros::{pop_and_reverse_item, pop_item};
@@ -41,7 +40,7 @@ pub trait SemanticTriplesGrammarTrait<'t> {
 
     /// This method provides skipped language comments.
     /// If you need comments please provide your own implementation of this method.
-    fn on_comment_parsed(&mut self, _token: Token<'t>) {}
+    fn on_comment(&mut self, _token: Token<'t>) {}
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -58,8 +57,7 @@ pub trait SemanticTriplesGrammarTrait<'t> {
 /// Type derived for non-terminal Id
 ///
 #[allow(dead_code)]
-#[derive(Builder, Debug, Clone)]
-#[builder(crate = "parol_runtime::derive_builder")]
+#[derive(Debug, Clone)]
 pub struct Id<'t> {
     pub id: Token<'t>, /* [a-zA-Z_][a-zA-Z0-9_]* */
 }
@@ -68,8 +66,7 @@ pub struct Id<'t> {
 /// Type derived for non-terminal Predicate
 ///
 #[allow(dead_code)]
-#[derive(Builder, Debug, Clone)]
-#[builder(crate = "parol_runtime::derive_builder")]
+#[derive(Debug, Clone)]
 pub struct Predicate<'t> {
     pub id: Box<Id<'t>>,
 }
@@ -78,8 +75,7 @@ pub struct Predicate<'t> {
 /// Type derived for non-terminal SemanticTriple
 ///
 #[allow(dead_code)]
-#[derive(Builder, Debug, Clone)]
-#[builder(crate = "parol_runtime::derive_builder")]
+#[derive(Debug, Clone)]
 pub struct SemanticTriple<'t> {
     pub id: Box<Id<'t>>,
     pub predicate: Box<Predicate<'t>>,
@@ -90,8 +86,7 @@ pub struct SemanticTriple<'t> {
 /// Type derived for non-terminal SemanticTriples
 ///
 #[allow(dead_code)]
-#[derive(Builder, Debug, Clone)]
-#[builder(crate = "parol_runtime::derive_builder")]
+#[derive(Debug, Clone)]
 pub struct SemanticTriples<'t> {
     pub semantic_triples_list: Vec<SemanticTriplesList<'t>>,
 }
@@ -100,8 +95,7 @@ pub struct SemanticTriples<'t> {
 /// Type derived for non-terminal SemanticTriplesList
 ///
 #[allow(dead_code)]
-#[derive(Builder, Debug, Clone)]
-#[builder(crate = "parol_runtime::derive_builder")]
+#[derive(Debug, Clone)]
 pub struct SemanticTriplesList<'t> {
     pub semantic_triple: Box<SemanticTriple<'t>>,
 }
@@ -120,6 +114,8 @@ pub enum ASTType<'t> {
     SemanticTriples(SemanticTriples<'t>),
     SemanticTriplesList(Vec<SemanticTriplesList<'t>>),
 }
+
+// -------------------------------------------------------------------------------------------------
 
 /// Auto-implemented adapter grammar
 ///
@@ -151,7 +147,7 @@ impl<'t, 'u> SemanticTriplesGrammarAuto<'t, 'u> {
 
     #[allow(dead_code)]
     fn push(&mut self, item: ASTType<'t>, context: &str) {
-        trace!("push    {}: {:?}", context, item);
+        trace!("push    {context}: {item:?}");
         self.item_stack.push(item)
     }
 
@@ -159,7 +155,7 @@ impl<'t, 'u> SemanticTriplesGrammarAuto<'t, 'u> {
     fn pop(&mut self, context: &str) -> Option<ASTType<'t>> {
         let item = self.item_stack.pop();
         if let Some(ref item) = item {
-            trace!("pop     {}: {:?}", context, item);
+            trace!("pop     {context}: {item:?}");
         }
         item
     }
@@ -174,7 +170,7 @@ impl<'t, 'u> SemanticTriplesGrammarAuto<'t, 'u> {
             self.item_stack
                 .iter()
                 .rev()
-                .map(|s| format!("  {:?}", s))
+                .map(|s| format!("  {s:?}"))
                 .collect::<Vec<std::string::String>>()
                 .join("\n")
         )
@@ -322,14 +318,13 @@ impl<'t> UserActionsTrait<'t> for SemanticTriplesGrammarAuto<'t, '_> {
             4 => self.id(&children[0]),
             5 => self.predicate(&children[0], &children[1], &children[2]),
             _ => Err(ParserError::InternalError(format!(
-                "Unhandled production number: {}",
-                prod_num
+                "Unhandled production number: {prod_num}"
             ))
             .into()),
         }
     }
 
-    fn on_comment_parsed(&mut self, token: Token<'t>) {
-        self.user_grammar.on_comment_parsed(token)
+    fn on_comment(&mut self, token: Token<'t>) {
+        self.user_grammar.on_comment(token)
     }
 }

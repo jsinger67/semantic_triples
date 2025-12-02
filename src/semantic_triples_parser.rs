@@ -4,31 +4,17 @@
 // lost after next build.
 // ---------------------------------------------------------
 
-use parol_runtime::once_cell::sync::Lazy;
-#[allow(unused_imports)]
-use parol_runtime::parser::{LLKParser, LookaheadDFA, ParseTreeType, ParseType, Production, Trans};
-use parol_runtime::{ParolError, ParseTree, TerminalIndex};
-use parol_runtime::{ScannerConfig, TokenStream, Tokenizer};
+use parol_runtime::{
+    ParolError, ParseTree, TokenStream,
+    parser::{
+        LLKParser, LookaheadDFA, ParseType, Production, Trans, parse_tree_type::TreeConstruct,
+    },
+};
+use scnr2::scanner;
 use std::path::Path;
 
 use crate::semantic_triples_grammar::SemanticTriplesGrammar;
 use crate::semantic_triples_grammar_trait::SemanticTriplesGrammarAuto;
-
-use parol_runtime::lexer::tokenizer::{
-    ERROR_TOKEN, NEW_LINE_TOKEN, UNMATCHABLE_TOKEN, WHITESPACE_TOKEN,
-};
-
-pub const TERMINALS: &[&str; 9] = &[
-    /* 0 */ UNMATCHABLE_TOKEN,
-    /* 1 */ UNMATCHABLE_TOKEN,
-    /* 2 */ UNMATCHABLE_TOKEN,
-    /* 3 */ UNMATCHABLE_TOKEN,
-    /* 4 */ UNMATCHABLE_TOKEN,
-    /* 5 */ r"[a-zA-Z_][a-zA-Z0-9_]*",
-    /* 6 */ r"\-\-",
-    /* 7 */ r"\->",
-    /* 8 */ ERROR_TOKEN,
-];
 
 pub const TERMINAL_NAMES: &[&str; 9] = &[
     /* 0 */ "EndOfInput",
@@ -42,21 +28,19 @@ pub const TERMINAL_NAMES: &[&str; 9] = &[
     /* 8 */ "Error",
 ];
 
-/* SCANNER_0: "INITIAL" */
-const SCANNER_0: (&[&str; 5], &[TerminalIndex; 3]) = (
-    &[
-        /* 0 */ UNMATCHABLE_TOKEN,
-        /* 1 */ NEW_LINE_TOKEN,
-        /* 2 */ WHITESPACE_TOKEN,
-        /* 3 */ r"(//.*(\r\n|\r|\n|$))",
-        /* 4 */ UNMATCHABLE_TOKEN,
-    ],
-    &[
-        5, /* Id */
-        6, /* MinusMinus */
-        7, /* MinusGT */
-    ],
-);
+scanner! {
+    SemanticTriplesGrammarScanner {
+        mode INITIAL {
+            token r"\r\n|\r|\n" => 1; // "Newline"
+            token r"[\s--\r\n]+" => 2; // "Whitespace"
+            token r"//.*(\r\n|\r|\n)?" => 3; // "LineComment"
+            token r"[a-zA-Z_][a-zA-Z0-9_]*" => 5; // "Id"
+            token r"\-\-" => 6; // "MinusMinus"
+            token r"\->" => 7; // "MinusGT"
+            token r"." => 8; // "Error"
+        }
+    }
+}
 
 const MAX_K: usize = 1;
 
@@ -134,22 +118,33 @@ pub const PRODUCTIONS: &[Production; 6] = &[
     },
 ];
 
-static SCANNERS: Lazy<Vec<ScannerConfig>> = Lazy::new(|| {
-    vec![ScannerConfig::new(
-        "INITIAL",
-        Tokenizer::build(TERMINALS, SCANNER_0.0, SCANNER_0.1).unwrap(),
-        &[],
-    )]
-});
-
 pub fn parse<'t, T>(
     input: &'t str,
     file_name: T,
     user_actions: &mut SemanticTriplesGrammar<'t>,
-) -> Result<ParseTree<'t>, ParolError>
+) -> Result<ParseTree, ParolError>
 where
     T: AsRef<Path>,
 {
+    use parol_runtime::{
+        parser::{parse_tree_type::SynTree, parser_types::SynTreeFlavor},
+        syntree::Builder,
+    };
+    let mut builder = Builder::<SynTree, SynTreeFlavor>::new_with();
+    parse_into(input, &mut builder, file_name, user_actions)?;
+    Ok(builder.build()?)
+}
+#[allow(dead_code)]
+pub fn parse_into<'t, T: TreeConstruct<'t>>(
+    input: &'t str,
+    tree_builder: &mut T,
+    file_name: impl AsRef<Path>,
+    user_actions: &mut SemanticTriplesGrammar<'t>,
+) -> Result<(), ParolError>
+where
+    ParolError: From<T::Error>,
+{
+    use semantic_triples_grammar_scanner::SemanticTriplesGrammarScanner;
     let mut llk_parser = LLKParser::new(
         3,
         LOOKAHEAD_AUTOMATA,
@@ -158,11 +153,19 @@ where
         NON_TERMINALS,
     );
     llk_parser.trim_parse_tree();
-
+    let scanner = SemanticTriplesGrammarScanner::new();
     // Initialize wrapper
     let mut user_actions = SemanticTriplesGrammarAuto::new(user_actions);
-    llk_parser.parse(
-        TokenStream::new(input, file_name, &SCANNERS, MAX_K).unwrap(),
+    llk_parser.parse_into(
+        tree_builder,
+        TokenStream::new(
+            input,
+            file_name,
+            scanner.scanner_impl.clone(),
+            &SemanticTriplesGrammarScanner::match_function,
+            MAX_K,
+        )
+        .unwrap(),
         &mut user_actions,
     )
 }

@@ -1,6 +1,6 @@
 [package]
 name = "semantic_triples"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -8,12 +8,13 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 env_logger = "0.11"
-parol_runtime = { version = "1.0", features = ["auto_generation"] }
-thiserror = "1.0"
+parol_runtime = "4.1"
+scnr2 = "0.3"
+thiserror = "2.0"
 
 [build-dependencies]
-parol = "1.0"
-parol_runtime = { version = "1.0", features = ["auto_generation"] }
+parol = "4.2.0"
+parol_runtime = "4.1"
 
 # For faster builds.
 [profile.dev.build-override]
