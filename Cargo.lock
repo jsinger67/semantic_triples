@@ -870,7 +870,7 @@ dependencies = [
 
 [[package]]
 name = "semantic_triples"
-version = "0.3.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "env_logger",
